@@ -1,0 +1,32 @@
+[package]
+name = "oterm"
+version = "0.3.0"
+edition = "2021"
+description = "Original terminal multiplexer with tabs, panes, themes, SSH profiles, and AI command suggestions."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-org/oterm"
+keywords = ["terminal", "tui", "multiplexer", "ssh", "ai"]
+categories = ["command-line-utilities"]
+readme = "README.md"
+
+[dependencies]
+ratatui = "0.30"
+crossterm = "0.29"
+portable-pty = "0.8"
+vt100 = "0.16"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+directories = "5"
+ureq = { version = "2", default-features = false, features = ["tls", "json"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

@@ -1,0 +1,44 @@
+default_profile = "powershell"
+
+[[profiles]]
+name = "powershell"
+type = "local"
+command = "powershell.exe"
+args = ["-NoLogo"]
+
+[[profiles]]
+name = "cmd"
+type = "local"
+command = "cmd.exe"
+
+[[profiles]]
+name = "bash"
+type = "local"
+command = "/bin/bash"
+
+# Example SSH profile (uses the system `ssh` binary).
+# Override the default profile name above to "myserver" to start with SSH.
+# [[profiles]]
+# name = "myserver"
+# type = "ssh"
+# host = "example.com"
+# user = "alice"
+# port = 22
+# extra_args = ["-o", "ServerAliveInterval=30"]
+
+[theme]
+name = "default"
+status_fg = "#000000"
+status_bg = "#00d7ff"
+tab_active_fg = "#000000"
+tab_active_bg = "#00d7ff"
+tab_inactive_fg = "#bbbbbb"
+tab_inactive_bg = "#262626"
+focus_border = "#ffaf00"
+inactive_border = "#444444"
+
+[ai]
+enabled = false
+model = "claude-haiku-4-5-20251001"
+max_tokens = 256
+# api_key = "..."  # or set ANTHROPIC_API_KEY env var

@@ -28,7 +28,7 @@ pub fn render_with_cursor(frame: &mut Frame, area: Rect, pty: &Pty, show_cursor:
             if contents.is_empty() {
                 buf_cell.set_symbol(" ");
             } else {
-                buf_cell.set_symbol(&contents);
+                buf_cell.set_symbol(contents);
             }
             buf_cell.set_style(cell_style(cell));
         }

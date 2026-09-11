@@ -205,8 +205,8 @@ fn sanitize(text: &str) -> String {
     // Strip a single ``` code-fence wrapper if present.
     if let Some(rest) = trimmed.strip_prefix("```") {
         let body = rest
-            .splitn(2, '\n')
-            .nth(1)
+            .split_once('\n')
+            .map(|(_, body)| body)
             .unwrap_or(rest)
             .trim_end_matches("```")
             .trim();

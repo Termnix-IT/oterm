@@ -43,8 +43,8 @@ fn collect_layout(area: Rect, tree: &PaneTree, out: &mut Vec<(PaneId, Rect)>) {
             let chunks = Layout::default()
                 .direction(direction)
                 .constraints([
-                    Constraint::Percentage(first_pct as u16),
-                    Constraint::Percentage(second_pct as u16),
+                    Constraint::Percentage(first_pct),
+                    Constraint::Percentage(second_pct),
                 ])
                 .split(area);
             collect_layout(chunks[0], first, out);

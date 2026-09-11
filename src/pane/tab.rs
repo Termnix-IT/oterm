@@ -108,7 +108,8 @@ impl Tab {
                 continue;
             }
             let dist = dx * dx + dy * dy;
-            if best.map_or(true, |(_, d)| dist < d) {
+            // `Option::is_none_or` needs Rust 1.82; keep the 1.75 MSRV.
+            if !matches!(best, Some((_, d)) if dist >= d) {
                 best = Some((id, dist));
             }
         }

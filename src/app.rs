@@ -137,12 +137,11 @@ impl App {
                     modal.input.pop();
                 }
             }
-            KeyCode::Char(c) => {
-                if matches!(modal.state, AiModalState::Editing | AiModalState::Error(_)) {
-                    if !key.modifiers.contains(KeyModifiers::CONTROL) {
-                        modal.input.push(c);
-                    }
-                }
+            KeyCode::Char(c)
+                if matches!(modal.state, AiModalState::Editing | AiModalState::Error(_))
+                    && !key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                modal.input.push(c);
             }
             _ => {}
         }

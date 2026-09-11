@@ -8,7 +8,7 @@ ratatui + portable-pty + 自作 vt100 レンダラで、tmux ライクなタブ�
 - 複数タブ・任意分割のペイン (左右/上下、何段でも)
 - TOML ベースのプロファイル (ローカルシェル + SSH)
 - カラーテーマ (HEX / ANSI 名)
-- AI コマンド補完 (Anthropic Claude Haiku 4.5)
+- AI コマンド補完 (クラウドの Anthropic Claude / ローカルの Ollama を切替可能)
 - Windows (ConPTY) / macOS / Linux
 
 ## 動作要件
@@ -34,15 +34,16 @@ cargo run --release
 | `Alt+矢印` | 隣接ペインへフォーカス移動 |
 | `Ctrl+Space` | AI コマンド補完モーダル |
 
-AI モーダル内: `Enter` で送信 / 結果挿入、`Esc` でキャンセル。
+AI モーダル内: `Enter` で送信 / 結果挿入、`Tab` でプロバイダ切替、`Shift+Tab` で Ollama モデル切替、`Esc` でキャンセル。
 
 ## 設定ファイル
 
-- Windows: `%APPDATA%\oterm\config.toml`
+- Windows: `%APPDATA%\oterm\config\config.toml`
 - macOS: `~/Library/Application Support/oterm/config.toml`
 - Linux: `~/.config/oterm/config.toml`
 
 ファイルが無い場合は同梱の `src/config/default.toml` が使われる。
+API キーは同じディレクトリの `secrets.toml` に分離して置く (後述)。
 
 ### プロファイル例
 
@@ -68,17 +69,36 @@ extra_args = ["-o", "ServerAliveInterval=30"]
 
 ### AI 補完
 
+クラウド (Anthropic) とローカル LLM (Ollama) の両方に対応し、モーダル内で切り替えられる。
+
 ```toml
 [ai]
 enabled = true
-model = "claude-haiku-4-5-20251001"
+provider = "anthropic"   # 起動時の既定プロバイダ ("anthropic" または "ollama")
+model = "claude-haiku-4-5-20251001"   # Anthropic 側のモデル
 max_tokens = 256
-# api_key = "sk-ant-..."     # または ANTHROPIC_API_KEY 環境変数
+
+[ai.ollama]
+base_url = "http://localhost:11434"
+models = ["qwen2.5-coder", "llama3.2"]   # Shift+Tab で順に切替
 ```
 
 `Ctrl+Space` でモーダルを開き、自然言語 (例: 「カレントディレクトリ以下で 1MB 以上のファイルを大きい順に列挙」) を入力 → Enter で送信。返ってきたコマンドを `Enter` で確定するとアクティブペインに挿入される (改行は付かないので、内容を確認してから自分で `Enter` を押して実行)。
 
-API キー未設定や `enabled = false` の場合はモーダルにエラーが出る。
+モーダル上部に現在のプロバイダとモデルが表示される。`Tab` で anthropic ⇄ ollama、`Shift+Tab` で `[ai.ollama].models` を順に切り替える。切替結果はモーダルを閉じても保持される (恒久的に変えたい場合は `config.toml` の `provider` を編集する)。
+
+Ollama を使う場合はローカルで `ollama serve` が動作し、指定モデルが `ollama pull` 済みである必要がある。未起動やモデル未取得の場合は自動的にクラウドへ切り替わることはなく、モーダルにエラーが表示される。
+
+#### API キー (`secrets.toml`)
+
+Anthropic のキーは `config.toml` と同じディレクトリの `secrets.toml` に置く。設定本体を共有・dotfile 管理してもキーが混ざらないようにするため。
+
+```toml
+# secrets.toml
+anthropic_api_key = "sk-ant-..."
+```
+
+キーの探索順は `secrets.toml` → `ANTHROPIC_API_KEY` 環境変数 → `config.toml` の `[ai].api_key` (旧方式)。Ollama はキー不要。`secrets.toml` が壊れている場合は警告ログを出して「キー無し」として起動を続行する。
 
 ### テーマ
 

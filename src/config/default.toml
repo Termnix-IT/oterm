@@ -39,6 +39,13 @@ inactive_border = "#444444"
 
 [ai]
 enabled = false
+provider = "anthropic"   # "anthropic" (cloud) or "ollama" (local); Tab switches at runtime
 model = "claude-haiku-4-5-20251001"
 max_tokens = 256
-# api_key = "..."  # or set ANTHROPIC_API_KEY env var
+# The Anthropic key belongs in secrets.toml (same directory) as
+#   anthropic_api_key = "sk-ant-..."
+# or in the ANTHROPIC_API_KEY env var.
+
+[ai.ollama]
+base_url = "http://localhost:11434"
+models = ["qwen2.5-coder"]   # Shift+Tab cycles this list inside the AI modal

@@ -41,7 +41,7 @@ impl App {
         let profile = pick_profile(&config)?;
         let (rows, cols) = initial_pane_size(pane_area);
         let tab = Tab::new(&profile, profile.name.clone(), rows, cols)?;
-        let ai = AiClient::from_config(&config.ai);
+        let ai = AiClient::from_config(&config.ai, config.anthropic_api_key());
         Ok(Self {
             tabs: vec![tab],
             active_tab: 0,
@@ -77,7 +77,8 @@ impl App {
             self.ai_modal = Some(AiModal {
                 input: String::new(),
                 state: AiModalState::Error(
-                    "AI is disabled. Set [ai].enabled = true and provide an API key (config or ANTHROPIC_API_KEY env var)."
+                    "AI is disabled. Set [ai].enabled = true in config.toml, then pick a provider \
+                     (anthropic needs a key in secrets.toml; ollama needs a local `ollama serve`)."
                         .into(),
                 ),
             });
@@ -117,6 +118,20 @@ impl App {
                 }
                 AiModalState::InFlight(_) => {}
             },
+            KeyCode::Tab => {
+                if matches!(modal.state, AiModalState::Editing | AiModalState::Error(_)) {
+                    if let Some(client) = self.ai.as_mut() {
+                        client.cycle_provider();
+                    }
+                }
+            }
+            KeyCode::BackTab => {
+                if matches!(modal.state, AiModalState::Editing | AiModalState::Error(_)) {
+                    if let Some(client) = self.ai.as_mut() {
+                        client.cycle_model();
+                    }
+                }
+            }
             KeyCode::Backspace => {
                 if matches!(modal.state, AiModalState::Editing | AiModalState::Error(_)) {
                     modal.input.pop();

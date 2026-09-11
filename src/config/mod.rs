@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use ratatui::style::Color;
 use serde::Deserialize;
+use tracing::warn;
 
 const DEFAULT_CONFIG: &str = include_str!("default.toml");
 
@@ -16,12 +17,24 @@ pub struct Config {
     pub theme: Theme,
     #[serde(default)]
     pub ai: AiConfig,
+    #[serde(skip)]
+    pub secrets: Secrets,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum AiProvider {
+    #[default]
+    Anthropic,
+    Ollama,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AiConfig {
     #[serde(default)]
     pub enabled: bool,
+    #[serde(default)]
+    pub provider: AiProvider,
     #[serde(default = "default_ai_model")]
     pub model: String,
     #[serde(default)]
@@ -30,33 +43,84 @@ pub struct AiConfig {
     pub system_prompt: String,
     #[serde(default = "default_ai_max_tokens")]
     pub max_tokens: u32,
+    #[serde(default)]
+    pub ollama: OllamaConfig,
 }
 
 impl Default for AiConfig {
     fn default() -> Self {
         Self {
             enabled: false,
+            provider: AiProvider::default(),
             model: default_ai_model(),
             api_key: None,
             system_prompt: default_ai_system_prompt(),
             max_tokens: default_ai_max_tokens(),
+            ollama: OllamaConfig::default(),
         }
     }
 }
 
-impl AiConfig {
-    pub fn effective_api_key(&self) -> Option<String> {
-        if let Some(key) = self.api_key.as_ref().filter(|s| !s.is_empty()) {
-            return Some(key.clone());
+#[derive(Debug, Clone, Deserialize)]
+pub struct OllamaConfig {
+    #[serde(default = "default_ollama_base_url")]
+    pub base_url: String,
+    #[serde(default = "default_ollama_models")]
+    pub models: Vec<String>,
+}
+
+impl Default for OllamaConfig {
+    fn default() -> Self {
+        Self {
+            base_url: default_ollama_base_url(),
+            models: default_ollama_models(),
         }
-        std::env::var("ANTHROPIC_API_KEY")
-            .ok()
-            .filter(|s| !s.is_empty())
+    }
+}
+
+/// Credentials kept out of `config.toml` so the main config stays shareable.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Secrets {
+    #[serde(default)]
+    pub anthropic_api_key: Option<String>,
+}
+
+impl Secrets {
+    /// A broken secrets file must not discard the rest of the config, so a
+    /// failure here degrades to "no stored credentials" instead of an error.
+    pub fn load() -> Self {
+        match Self::try_load() {
+            Ok(secrets) => secrets,
+            Err(err) => {
+                warn!(error = %err, "secrets load failed; continuing without stored credentials");
+                Self::default()
+            }
+        }
+    }
+
+    fn try_load() -> Result<Self> {
+        let Some(path) = secrets_path() else {
+            return Ok(Self::default());
+        };
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+        let text = std::fs::read_to_string(&path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        toml::from_str(&text).with_context(|| format!("invalid TOML in {}", path.display()))
     }
 }
 
 fn default_ai_model() -> String {
     "claude-haiku-4-5-20251001".into()
+}
+
+fn default_ollama_base_url() -> String {
+    "http://localhost:11434".into()
+}
+
+fn default_ollama_models() -> Vec<String> {
+    vec!["qwen2.5-coder".into()]
 }
 
 fn default_ai_system_prompt() -> String {
@@ -119,6 +183,33 @@ pub struct Theme {
 
 impl Config {
     pub fn load() -> Result<Self> {
+        let mut config = Self::load_toml()?;
+        config.secrets = Secrets::load();
+        Ok(config)
+    }
+
+    pub fn defaults() -> Result<Self> {
+        let mut config: Self = toml::from_str(DEFAULT_CONFIG).context("invalid default config")?;
+        config.secrets = Secrets::load();
+        Ok(config)
+    }
+
+    /// Anthropic key lookup: dedicated secrets file, then env var, then the
+    /// legacy plaintext `[ai].api_key` in the shared config.
+    pub fn anthropic_api_key(&self) -> Option<String> {
+        self.secrets
+            .anthropic_api_key
+            .clone()
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                std::env::var("ANTHROPIC_API_KEY")
+                    .ok()
+                    .filter(|s| !s.is_empty())
+            })
+            .or_else(|| self.ai.api_key.clone().filter(|s| !s.is_empty()))
+    }
+
+    fn load_toml() -> Result<Self> {
         if let Some(path) = config_path() {
             if path.exists() {
                 let text = std::fs::read_to_string(&path)
@@ -127,10 +218,6 @@ impl Config {
                     .with_context(|| format!("invalid TOML in {}", path.display()));
             }
         }
-        Self::defaults()
-    }
-
-    pub fn defaults() -> Result<Self> {
         toml::from_str(DEFAULT_CONFIG).context("invalid default config")
     }
 
@@ -149,6 +236,10 @@ impl Config {
 
 pub fn config_path() -> Option<PathBuf> {
     ProjectDirs::from("", "", "oterm").map(|d| d.config_dir().join("config.toml"))
+}
+
+pub fn secrets_path() -> Option<PathBuf> {
+    ProjectDirs::from("", "", "oterm").map(|d| d.config_dir().join("secrets.toml"))
 }
 
 pub fn parse_color(value: &str) -> Option<Color> {

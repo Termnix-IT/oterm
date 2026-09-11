@@ -2,6 +2,7 @@
 **/*.rs.bk
 Cargo.lock.bak
 *.log
+secrets.toml
 .DS_Store
 CLAUDE.md
 .claude/

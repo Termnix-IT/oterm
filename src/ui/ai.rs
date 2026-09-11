@@ -4,11 +4,12 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Frame;
 
+use crate::ai::AiClient;
 use crate::app::{AiModal, AiModalState};
 
 use super::theme::Theme;
 
-pub fn render(frame: &mut Frame, modal: &AiModal, theme: &Theme) {
+pub fn render(frame: &mut Frame, modal: &AiModal, ai: Option<&AiClient>, theme: &Theme) {
     let area = popup_area(frame.area(), 70, 50);
     frame.render_widget(Clear, area);
 
@@ -22,6 +23,7 @@ pub fn render(frame: &mut Frame, modal: &AiModal, theme: &Theme) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Length(1),
             Constraint::Length(3),
             Constraint::Length(1),
             Constraint::Min(1),
@@ -29,10 +31,30 @@ pub fn render(frame: &mut Frame, modal: &AiModal, theme: &Theme) {
         ])
         .split(inner);
 
-    render_input(frame, chunks[0], modal);
-    render_separator(frame, chunks[1]);
-    render_body(frame, chunks[2], modal);
-    render_hint(frame, chunks[3], modal);
+    render_provider(frame, chunks[0], ai);
+    render_input(frame, chunks[1], modal);
+    render_separator(frame, chunks[2]);
+    render_body(frame, chunks[3], modal);
+    render_hint(frame, chunks[4], modal);
+}
+
+fn render_provider(frame: &mut Frame, area: Rect, ai: Option<&AiClient>) {
+    let line = match ai {
+        Some(client) => Line::from(vec![
+            Span::styled("  provider: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                client.status_label(),
+                Style::default()
+                    .fg(Color::LightMagenta)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]),
+        None => Line::from(Span::styled(
+            "  provider: unavailable",
+            Style::default().fg(Color::DarkGray),
+        )),
+    };
+    frame.render_widget(Paragraph::new(line), area);
 }
 
 fn render_input(frame: &mut Frame, area: Rect, modal: &AiModal) {
@@ -65,7 +87,7 @@ fn render_separator(frame: &mut Frame, area: Rect) {
 fn render_body(frame: &mut Frame, area: Rect, modal: &AiModal) {
     let (text, style) = match &modal.state {
         AiModalState::Editing => (
-            "  Press Enter to ask Claude.".to_string(),
+            "  Press Enter to send.".to_string(),
             Style::default().fg(Color::Gray),
         ),
         AiModalState::InFlight(_) => (
@@ -91,10 +113,14 @@ fn render_body(frame: &mut Frame, area: Rect, modal: &AiModal) {
 
 fn render_hint(frame: &mut Frame, area: Rect, modal: &AiModal) {
     let hint = match &modal.state {
-        AiModalState::Editing => " Enter: send  |  Esc: cancel ",
+        AiModalState::Editing => {
+            " Enter: send  |  Tab: provider  |  Shift+Tab: model  |  Esc: cancel "
+        }
         AiModalState::InFlight(_) => " (Esc: cancel) ",
         AiModalState::Result(_) => " Enter: insert into pane  |  Esc: cancel ",
-        AiModalState::Error(_) => " Enter: retry  |  Esc: cancel ",
+        AiModalState::Error(_) => {
+            " Enter: retry  |  Tab: provider  |  Shift+Tab: model  |  Esc: cancel "
+        }
     };
     let p = Paragraph::new(hint).style(Style::default().fg(Color::DarkGray));
     frame.render_widget(p, area);

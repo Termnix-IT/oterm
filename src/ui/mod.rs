@@ -28,7 +28,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     render_status(frame, status, app, &theme);
 
     if let Some(modal) = &app.ai_modal {
-        ai::render(frame, modal, &theme);
+        ai::render(frame, modal, app.ai.as_ref(), &theme);
     }
 }
 

@@ -36,16 +36,21 @@ pub fn render(frame: &mut Frame, modal: &AiModal, theme: &Theme) {
 }
 
 fn render_input(frame: &mut Frame, area: Rect, modal: &AiModal) {
-    let label = Line::from(vec![
-        Span::styled(
-            "  ▎ describe what you want: ",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
-        ),
-    ]);
+    let label = Line::from(vec![Span::styled(
+        "  ▎ describe what you want: ",
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
+    )]);
     let input = Line::from(vec![
         Span::raw("  > "),
         Span::styled(&modal.input, Style::default().fg(Color::White)),
-        Span::styled("▏", Style::default().fg(Color::White).add_modifier(Modifier::SLOW_BLINK)),
+        Span::styled(
+            "▏",
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::SLOW_BLINK),
+        ),
     ]);
     let p = Paragraph::new(vec![label, Line::raw(""), input]).wrap(Wrap { trim: false });
     frame.render_widget(p, area);
@@ -65,7 +70,9 @@ fn render_body(frame: &mut Frame, area: Rect, modal: &AiModal) {
         ),
         AiModalState::InFlight(_) => (
             "  Thinking…".to_string(),
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         ),
         AiModalState::Result(text) => (
             format!("  $ {text}"),

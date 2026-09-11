@@ -105,9 +105,10 @@ impl Pty {
 fn build_command(profile: &Profile) -> Result<CommandBuilder> {
     match profile.kind {
         ProfileType::Local => {
-            let cmd = profile.command.as_deref().ok_or_else(|| {
-                anyhow!("local profile '{}' is missing 'command'", profile.name)
-            })?;
+            let cmd = profile
+                .command
+                .as_deref()
+                .ok_or_else(|| anyhow!("local profile '{}' is missing 'command'", profile.name))?;
             let mut cb = CommandBuilder::new(cmd);
             for a in &profile.args {
                 cb.arg(a);
@@ -115,9 +116,10 @@ fn build_command(profile: &Profile) -> Result<CommandBuilder> {
             Ok(cb)
         }
         ProfileType::Ssh => {
-            let host = profile.host.as_deref().ok_or_else(|| {
-                anyhow!("ssh profile '{}' is missing 'host'", profile.name)
-            })?;
+            let host = profile
+                .host
+                .as_deref()
+                .ok_or_else(|| anyhow!("ssh profile '{}' is missing 'host'", profile.name))?;
             let bin = profile.command.as_deref().unwrap_or("ssh");
             let mut cb = CommandBuilder::new(bin);
             for a in &profile.extra_args {

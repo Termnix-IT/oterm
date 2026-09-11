@@ -48,7 +48,11 @@ pub fn map_key(key: &KeyEvent) -> Option<Action> {
     }
 
     if ctrl && key.code == KeyCode::Tab {
-        return Some(if shift { Action::PrevTab } else { Action::NextTab });
+        return Some(if shift {
+            Action::PrevTab
+        } else {
+            Action::NextTab
+        });
     }
     if ctrl && key.code == KeyCode::BackTab {
         return Some(Action::PrevTab);

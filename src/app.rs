@@ -143,9 +143,9 @@ impl App {
                 Ok(AiOutcome::Ok(text)) => Some(AiModalState::Result(text)),
                 Ok(AiOutcome::Err(err)) => Some(AiModalState::Error(err)),
                 Err(mpsc::TryRecvError::Empty) => None,
-                Err(mpsc::TryRecvError::Disconnected) => Some(AiModalState::Error(
-                    "AI worker thread disconnected".into(),
-                )),
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    Some(AiModalState::Error("AI worker thread disconnected".into()))
+                }
             },
             _ => None,
         };

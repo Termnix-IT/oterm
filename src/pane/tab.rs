@@ -41,11 +41,7 @@ impl Tab {
         })
     }
 
-    pub fn split_active(
-        &mut self,
-        profile: &Profile,
-        orientation: SplitOrientation,
-    ) -> Result<()> {
+    pub fn split_active(&mut self, profile: &Profile, orientation: SplitOrientation) -> Result<()> {
         let active_rect = self.rects.get(&self.active).copied();
         let (rows, cols) = match (active_rect, orientation) {
             (Some(r), SplitOrientation::Horizontal) => ((r.height / 2).max(1), r.width.max(1)),
@@ -55,10 +51,7 @@ impl Tab {
         let new_id = self.next_id;
         self.next_id += 1;
         let pty = Pty::spawn(profile, rows, cols)?;
-        if !self
-            .root
-            .split_leaf(self.active, new_id, orientation)
-        {
+        if !self.root.split_leaf(self.active, new_id, orientation) {
             return Err(anyhow::anyhow!("active pane not found in tree"));
         }
         self.panes.insert(new_id, pty);
@@ -127,5 +120,4 @@ impl Tab {
     pub fn record_rect(&mut self, id: PaneId, rect: Rect) {
         self.rects.insert(id, rect);
     }
-
 }

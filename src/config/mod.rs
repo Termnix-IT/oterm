@@ -49,7 +49,9 @@ impl AiConfig {
         if let Some(key) = self.api_key.as_ref().filter(|s| !s.is_empty()) {
             return Some(key.clone());
         }
-        std::env::var("ANTHROPIC_API_KEY").ok().filter(|s| !s.is_empty())
+        std::env::var("ANTHROPIC_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty())
     }
 }
 
@@ -175,8 +177,5 @@ pub fn parse_color(value: &str) -> Option<Color> {
 }
 
 pub fn color_or(value: &Option<String>, fallback: Color) -> Color {
-    value
-        .as_deref()
-        .and_then(parse_color)
-        .unwrap_or(fallback)
+    value.as_deref().and_then(parse_color).unwrap_or(fallback)
 }

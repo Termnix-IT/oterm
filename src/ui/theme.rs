@@ -27,8 +27,7 @@ impl Theme {
             focus_border: Style::default()
                 .fg(color_or(&c.focus_border, Color::Yellow))
                 .add_modifier(Modifier::BOLD),
-            inactive_border: Style::default()
-                .fg(color_or(&c.inactive_border, Color::DarkGray)),
+            inactive_border: Style::default().fg(color_or(&c.inactive_border, Color::DarkGray)),
         }
     }
 }

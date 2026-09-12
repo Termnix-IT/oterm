@@ -1,8 +1,10 @@
+mod anthropic;
+mod ollama;
+
 use std::sync::mpsc;
 use std::thread;
 
-use anyhow::{anyhow, bail, Context, Result};
-use serde_json::json;
+use anyhow::anyhow;
 use tracing::{info, warn};
 
 use crate::config::{AiConfig, AiProvider};
@@ -101,7 +103,7 @@ impl AiClient {
         thread::spawn(move || {
             let result = match provider {
                 AiProvider::Anthropic => match api_key {
-                    Some(key) => call_anthropic(&key, &model, &system, max_tokens, &prompt),
+                    Some(key) => anthropic::call(&key, &model, &system, max_tokens, &prompt),
                     None => Err(anyhow!(
                         "no Anthropic API key: set anthropic_api_key in secrets.toml, \
                          the ANTHROPIC_API_KEY env var, or switch provider with Tab"
@@ -111,7 +113,7 @@ impl AiClient {
                     if model.is_empty() {
                         Err(anyhow!("no model listed in [ai.ollama].models"))
                     } else {
-                        call_ollama(&base_url, &model, &system, max_tokens, &prompt)
+                        ollama::call(&base_url, &model, &system, max_tokens, &prompt)
                     }
                 }
             };
@@ -128,81 +130,10 @@ impl AiClient {
     }
 }
 
-fn call_anthropic(
-    api_key: &str,
-    model: &str,
-    system: &str,
-    max_tokens: u32,
-    user_prompt: &str,
-) -> Result<String> {
-    let body = json!({
-        "model": model,
-        "max_tokens": max_tokens,
-        "system": system,
-        "messages": [{"role": "user", "content": user_prompt}],
-    });
-    let resp = ureq::post("https://api.anthropic.com/v1/messages")
-        .set("x-api-key", api_key)
-        .set("anthropic-version", "2023-06-01")
-        .set("content-type", "application/json")
-        .send_json(body)
-        .context("anthropic api request failed")?;
-    let v: serde_json::Value = resp.into_json().context("anthropic response is not json")?;
-    let text = v
-        .get("content")
-        .and_then(|c| c.get(0))
-        .and_then(|c| c.get("text"))
-        .and_then(|t| t.as_str())
-        .context("anthropic response missing content[0].text")?;
-    Ok(sanitize(text))
-}
-
-fn call_ollama(
-    base_url: &str,
-    model: &str,
-    system: &str,
-    max_tokens: u32,
-    user_prompt: &str,
-) -> Result<String> {
-    let body = json!({
-        "model": model,
-        "stream": false,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_prompt},
-        ],
-        "options": {"num_predict": max_tokens},
-    });
-    let url = format!("{base_url}/api/chat");
-    let resp = match ureq::post(&url)
-        .set("content-type", "application/json")
-        .send_json(body)
-    {
-        Ok(resp) => resp,
-        // A wrong model name in the config is the common failure here, and
-        // ollama reports it in the body, so surface that instead of the status.
-        Err(ureq::Error::Status(code, resp)) => {
-            let detail = resp
-                .into_json::<serde_json::Value>()
-                .ok()
-                .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(str::to_string))
-                .unwrap_or_else(|| format!("http {code}"));
-            bail!("ollama returned {code}: {detail}");
-        }
-        Err(e) => bail!("cannot reach ollama at {base_url} ({e}); is `ollama serve` running?"),
-    };
-    let v: serde_json::Value = resp.into_json().context("ollama response is not json")?;
-    let text = v
-        .get("message")
-        .and_then(|m| m.get("content"))
-        .and_then(|c| c.as_str())
-        .context("ollama response missing message.content")?;
-    Ok(sanitize(text))
-}
-
+/// Both providers are told to answer with a bare command, but models still
+/// wrap it in a code fence often enough to be worth stripping here.
 fn sanitize(text: &str) -> String {
     let trimmed = text.trim();
-    // Strip a single ``` code-fence wrapper if present.
     if let Some(rest) = trimmed.strip_prefix("```") {
         let body = rest
             .split_once('\n')

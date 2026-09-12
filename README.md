@@ -45,6 +45,8 @@ AI モーダル内: `Enter` で送信 / 結果挿入、`Tab` でプロバイダ�
 ファイルが無い場合は同梱の `src/config/default.toml` が使われる。
 API キーは同じディレクトリの `secrets.toml` に分離して置く (後述)。
 
+設定ファイルの記入例は `examples/config.toml` と `examples/secrets.toml.example` にある。
+
 ### プロファイル例
 
 ```toml

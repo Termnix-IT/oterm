@@ -1,0 +1,58 @@
+# oterm の設定ファイルの例。
+#
+# 実際の置き場所:
+#   Windows: %APPDATA%\oterm\config\config.toml
+#   macOS:   ~/Library/Application Support/oterm/config.toml
+#   Linux:   ~/.config/oterm/config.toml
+#
+# このファイルが無い場合は、バイナリに同梱された既定値が使われる。
+# API キーはこのファイルではなく、同じディレクトリの secrets.toml に置く
+# (secrets.toml.example を参照)。
+
+# 起動時に使うプロファイル名。下の [[profiles]] のいずれかの name と一致させる。
+default_profile = "powershell"
+
+[[profiles]]
+name = "powershell"
+type = "local"
+command = "powershell.exe"
+args = ["-NoLogo"]
+
+[[profiles]]
+name = "bash"
+type = "local"
+command = "/bin/bash"
+
+# SSH プロファイルは OS の ssh コマンドを呼び出すため、
+# 認証 (鍵・エージェント・パスワード) は通常の ssh と同じ仕組みで動く。
+[[profiles]]
+name = "myserver"
+type = "ssh"
+host = "example.com"
+user = "alice"
+port = 22
+extra_args = ["-o", "ServerAliveInterval=30"]
+
+[theme]
+status_fg = "#000000"
+status_bg = "#00d7ff"
+tab_active_fg = "#000000"
+tab_active_bg = "#00d7ff"
+tab_inactive_fg = "#bbbbbb"
+tab_inactive_bg = "#262626"
+focus_border = "#ffaf00"
+inactive_border = "#444444"
+
+[ai]
+enabled = true
+# 起動時のプロバイダ。モーダル内で Tab を押せば実行中に切り替えられる。
+provider = "ollama"
+# Anthropic 側で使うモデル。
+model = "claude-haiku-4-5-20251001"
+max_tokens = 256
+
+[ai.ollama]
+base_url = "http://localhost:11434"
+# モーダル内で Shift+Tab を押すと、この一覧を順に切り替える。
+# ここに書くモデルは ollama pull で取得済みである必要がある。
+models = ["qwen2.5-coder", "llama3.2"]

@@ -128,5 +128,6 @@ MIT OR Apache-2.0 のデュアル。詳細は `LICENSE-MIT` / `LICENSE-APACHE`�
 
 - Phase 1: 単一シェルを画面内で動かす ✅
 - Phase 2: タブ・ペイン分割・テーマ・プロファイル設定 ✅
-- Phase 3: SSH プロファイル・AI 補完・OSS 公開 ✅ ← **現在ここ**
+- Phase 3: SSH プロファイル・AI 補完・OSS 公開 ✅
+- Phase 4: ローカル LLM (Ollama) 対応・プロバイダのモーダル内切替・`secrets.toml` への API キー分離 ✅ ← **現在ここ**
 - 今後: russh ベースのアプリ内 SSH、コマンド履歴の AI ベース検索、プラグイン API

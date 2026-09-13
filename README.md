@@ -91,6 +91,8 @@ models = ["qwen2.5-coder", "llama3.2"]   # Shift+Tab で順に切替
 
 Ollama を使う場合はローカルで `ollama serve` が動作し、指定モデルが `ollama pull` 済みである必要がある。未起動やモデル未取得の場合は自動的にクラウドへ切り替わることはなく、モーダルにエラーが表示される。
 
+思考 (thinking) を行うモデル (例: gemma4) は、思考に出力の上限を使い切って応答が空になるのを避けるため、思考を無効にして呼び出す。
+
 #### API キー (`secrets.toml`)
 
 Anthropic のキーは `config.toml` と同じディレクトリの `secrets.toml` に置く。設定本体を共有・dotfile 管理してもキーが混ざらないようにするため。

@@ -93,12 +93,20 @@ impl AiClient {
     }
 
     pub fn suggest_async(&self, prompt: String) -> mpsc::Receiver<AiOutcome> {
+        self.request_async(self.system_prompt.clone(), prompt)
+    }
+
+    /// Sends only the query; the history itself is matched locally and never leaves the machine.
+    pub fn search_terms_async(&self, query: String, shell: &str) -> mpsc::Receiver<AiOutcome> {
+        self.request_async(search_terms_prompt(shell), query)
+    }
+
+    fn request_async(&self, system: String, prompt: String) -> mpsc::Receiver<AiOutcome> {
         let (tx, rx) = mpsc::channel();
         let provider = self.provider;
         let model = self.model().to_string();
         let api_key = self.api_key.clone();
         let base_url = self.ollama_base_url.clone();
-        let system = self.system_prompt.clone();
         let max_tokens = self.max_tokens;
         thread::spawn(move || {
             let result = match provider {
@@ -144,4 +152,14 @@ fn sanitize(text: &str) -> String {
         return body.to_string();
     }
     trimmed.to_string()
+}
+
+fn search_terms_prompt(shell: &str) -> String {
+    format!(
+        "You help search a user's {shell} command history. The user describes a command \
+         they ran before. Reply with 3 to 8 short search terms that would appear literally \
+         in that command line: command names, subcommands, flags, or file names, written \
+         in {shell} syntax. Output one term per line with no numbering, no quotes, and no \
+         explanation."
+    )
 }

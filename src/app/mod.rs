@@ -1,3 +1,4 @@
+mod history_modal;
 mod modal;
 mod run;
 
@@ -9,6 +10,7 @@ use crate::config::{Config, Profile};
 use crate::keymap::Action;
 use crate::pane::{SplitOrientation, Tab};
 
+pub use history_modal::{HistoryModal, HistoryModalState};
 pub use modal::{AiModal, AiModalState};
 pub use run::run;
 
@@ -19,6 +21,7 @@ pub struct App {
     pub should_quit: bool,
     pub ai: Option<AiClient>,
     pub ai_modal: Option<AiModal>,
+    pub history_modal: Option<HistoryModal>,
 }
 
 impl App {
@@ -34,6 +37,7 @@ impl App {
             should_quit: false,
             ai,
             ai_modal: None,
+            history_modal: None,
         })
     }
 
@@ -53,6 +57,7 @@ impl App {
             Action::SendInput(bytes) => self.send_input(&bytes)?,
             Action::Paste(text) => self.send_input(text.as_bytes())?,
             Action::OpenAiModal => self.open_ai_modal(),
+            Action::OpenHistoryModal => self.open_history_modal(),
         }
         Ok(())
     }

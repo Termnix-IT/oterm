@@ -1,4 +1,6 @@
 pub mod ai;
+pub mod history;
+mod modal;
 pub mod panes;
 pub mod tabs;
 pub mod terminal;
@@ -30,6 +32,9 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     if let Some(modal) = &app.ai_modal {
         ai::render(frame, modal, app.ai.as_ref(), &theme);
     }
+    if let Some(modal) = &app.history_modal {
+        history::render(frame, modal, app.ai.as_ref(), &theme);
+    }
 }
 
 pub fn pane_area(frame_area: Rect) -> Rect {
@@ -54,7 +59,7 @@ fn render_status(frame: &mut Frame, area: Rect, app: &App, theme: &Theme) {
     let pane_count = tab.map(|t| t.panes.len()).unwrap_or(0);
     let ai_label = if app.ai.is_some() { "AI:on" } else { "AI:off" };
     let text = format!(
-        " oterm  |  tab {}/{}  |  pane #{} ({} panes)  |  {}  |  Ctrl+Shift+T new  D|E split  Alt+arrow focus  Ctrl+Shift+W close  Ctrl+Space AI  Ctrl+Q quit ",
+        " oterm  |  tab {}/{}  |  pane #{} ({} panes)  |  {}  |  Ctrl+Shift+T new  D|E split  Alt+arrow focus  Ctrl+Shift+W close  Ctrl+Space AI  Ctrl+Shift+R history  Ctrl+Q quit ",
         app.active_tab + 1,
         app.tabs.len(),
         pane_id,

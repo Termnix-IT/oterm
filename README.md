@@ -9,6 +9,7 @@ ratatui + portable-pty + 自作 vt100 レンダラで、tmux ライクなタブ�
 - TOML ベースのプロファイル (ローカルシェル + SSH)
 - カラーテーマ (HEX / ANSI 名)
 - AI コマンド補完 (クラウドの Anthropic Claude / ローカルの Ollama を切替可能)
+- コマンド履歴の AI 検索 (履歴は外部に送らず、手元で照合)
 - Windows (ConPTY) / macOS / Linux
 
 ## 動作要件
@@ -33,8 +34,26 @@ cargo run --release
 | `Ctrl+Shift+E` | 上下にペイン分割 |
 | `Alt+矢印` | 隣接ペインへフォーカス移動 |
 | `Ctrl+Space` | AI コマンド補完モーダル |
+| `Ctrl+Shift+R` | コマンド履歴の AI 検索モーダル |
 
 AI モーダル内: `Enter` で送信 / 結果挿入、`Tab` でプロバイダ切替、`Shift+Tab` で Ollama モデル切替、`Esc` でキャンセル。
+
+### 外側のターミナルとのキーの衝突
+
+oterm はターミナルの中で動くため、oterm を起動している外側のターミナルアプリが同じキーを自分のショートカットとして使っていると、そのキーは oterm に届かない。
+
+- **WezTerm** では `Ctrl+Shift+R` が WezTerm 側に取られるため、履歴検索モーダルが開かない。Windows 標準のコンソール (Windows PowerShell を直接起動した画面) では問題なく動作することを確認済み。
+- `Ctrl+Shift+T` / `Ctrl+Shift+W` などの他のショートカットも、外側のターミナルの既定の設定によっては同じように衝突しうる。
+
+WezTerm で使う場合は、`wezterm.lua` で該当キーの既定の割り当てを無効にすると oterm に届くようになる。
+
+```lua
+config.keys = {
+  { key = 'R', mods = 'CTRL|SHIFT', action = wezterm.action.DisableDefaultAssignment },
+}
+```
+
+キー名の書き方 (`'R'` / `'r'`) や修飾キーの表記は、`wezterm show-keys --lua` で表示される既定の割り当てに合わせること。既に `config.keys` を定義している場合は、その表に行を追加する。
 
 ## 設定ファイル
 
@@ -104,6 +123,30 @@ anthropic_api_key = "sk-ant-..."
 
 キーの探索順は `secrets.toml` → `ANTHROPIC_API_KEY` 環境変数 → `config.toml` の `[ai].api_key` (旧方式)。Ollama はキー不要。`secrets.toml` が壊れている場合は警告ログを出して「キー無し」として起動を続行する。
 
+### コマンド履歴の AI 検索
+
+`Ctrl+Shift+R` で履歴検索モーダルを開き、過去に実行したコマンドを自然言語 (例: 「先週 docker のログを見たコマンド」) で探せる。`↑↓` で選んで `Enter` を押すとアクティブペインに挿入される (AI 補完と同じく改行は付かないので、確認してから自分で実行する)。
+
+仕組み:
+
+- LLM に送るのは質問文だけ。LLM が返した検索語 (例: `docker`、`logs`) で oterm が手元の履歴を照合する。**履歴そのものは Ollama にも Anthropic にも送らない。**
+- 質問文に含まれる英数字の語 (例: `deploy.ps1`) もそのまま照合に使う。
+- 一致した検索語の数が多い順、同数なら新しい順に最大 20 件を表示する。同じコマンドは最新の 1 件にまとめる。
+- `[ai].enabled = false` の場合は AI を使わず、質問文中の語だけで照合する。
+- プロバイダの切替 (`Tab` / `Shift+Tab`) は AI 補完モーダルと共通。
+
+対象の履歴 (アクティブなペインのプロファイルから判定):
+
+- PowerShell: PSReadLine の履歴 (`%APPDATA%\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt`、macOS / Linux は `~/.local/share/powershell/PSReadLine/ConsoleHost_history.txt`)
+- bash: `$HISTFILE`、未設定なら `~/.bash_history`
+
+制約:
+
+- PowerShell の履歴には日時が記録されないため、「先週」のような時期の指定は効かない (新しい順に並ぶだけ)。
+- bash は通常シェルの終了時に履歴を書き込むため、開いているセッションの直近のコマンドは出てこない。
+- 複数行にまたがるコマンドは対象外 (挿入すると途中の行が実行されてしまうため)。
+- SSH・cmd のペインや、ペインの中で後から起動したシェルの履歴は対象外。
+
 ### テーマ
 
 ```toml
@@ -133,5 +176,10 @@ MIT OR Apache-2.0 のデュアル。詳細は `LICENSE-MIT` / `LICENSE-APACHE`�
 - Phase 1: 単一シェルを画面内で動かす ✅
 - Phase 2: タブ・ペイン分割・テーマ・プロファイル設定 ✅
 - Phase 3: SSH プロファイル・AI 補完・OSS 公開 ✅
-- Phase 4: ローカル LLM (Ollama) 対応・プロバイダのモーダル内切替・`secrets.toml` への API キー分離 ✅ ← **現在ここ**
-- 今後: russh ベースのアプリ内 SSH、コマンド履歴の AI ベース検索、プラグイン API
+- Phase 4: ローカル LLM (Ollama) 対応・プロバイダのモーダル内切替・`secrets.toml` への API キー分離 ✅
+- Phase 5: コマンド履歴の AI 検索 ✅ ← **現在ここ**
+
+見送った項目 (導入コストに対して得られる効果が小さいため、実装しない):
+
+- russh ベースのアプリ内 SSH — OS 標準の `ssh` で Windows / macOS / Linux とも既に動作しており、置き換える利点が小さい。加えて非同期ランタイム (tokio) の導入が必要になる。
+- プラグイン API — 具体的な使い道がないまま拡張点を設計することになる。

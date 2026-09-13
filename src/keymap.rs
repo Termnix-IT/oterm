@@ -14,6 +14,7 @@ pub enum Action {
     SendInput(Vec<u8>),
     Paste(String),
     OpenAiModal,
+    OpenHistoryModal,
 }
 
 pub fn map_key(key: &KeyEvent) -> Option<Action> {
@@ -37,6 +38,7 @@ pub fn map_key(key: &KeyEvent) -> Option<Action> {
         match key.code {
             KeyCode::Char('t') | KeyCode::Char('T') => return Some(Action::NewTab),
             KeyCode::Char('w') | KeyCode::Char('W') => return Some(Action::ClosePane),
+            KeyCode::Char('r') | KeyCode::Char('R') => return Some(Action::OpenHistoryModal),
             KeyCode::Char('d') | KeyCode::Char('D') => {
                 return Some(Action::Split(SplitOrientation::Vertical));
             }

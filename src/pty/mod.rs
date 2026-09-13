@@ -13,6 +13,7 @@ pub struct Pty {
     writer: Box<dyn Write + Send>,
     parser: Arc<Mutex<vt100::Parser>>,
     _child: Box<dyn portable_pty::Child + Send + Sync>,
+    profile: Profile,
 }
 
 impl Pty {
@@ -73,6 +74,7 @@ impl Pty {
             writer,
             parser,
             _child: child,
+            profile: profile.clone(),
         })
     }
 
@@ -99,6 +101,10 @@ impl Pty {
 
     pub fn parser(&self) -> Arc<Mutex<vt100::Parser>> {
         Arc::clone(&self.parser)
+    }
+
+    pub fn profile(&self) -> &Profile {
+        &self.profile
     }
 }
 
